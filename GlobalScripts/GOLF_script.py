@@ -12,7 +12,7 @@ def initialize(shot, rounds, courses, baselines):
     strokes = pd.DataFrame()
     
     ## Joining Shot and Rounds data-frames
-    strokes = shot.merge(rounds[['roundID', 'courseID', 'Tees']], on = 'roundID', how = 'left')
+    strokes = shot.merge(rounds[['roundID', 'courseID', 'Tees', 'holesPlayed']], on = 'roundID', how = 'left')
     
     ## Joining Strokes and Courses data-frames
     strokes = strokes.merge(courses, on = ['courseID', 'Tees', 'holeNumber'], how = 'left')
