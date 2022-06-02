@@ -24,8 +24,12 @@ def initialize(shot, rounds, courses, baselines):
     ## Calling baseline function
     strokes = locationBL(strokes, baselines)
     
+    ## Creating data-frames to be returned
+    shotLevel = strokes[['holeNumber', 'holeYardage', 'shotNumber', 'shotCategory', 'Location', 'locationLieType', 'locationBL', 'nextLocation', 'nextLocationLieType', 'nextLocationBL', 'changeYardage', 'teeShotMiss', 'recoveryShot', 'penaltyIncurred', 'penaltyStrokeValue', 'strokesGained', 'grossStrokes', 'Putt', 'Fairway', 'GIR']]
+    roundLevel = strokes[['roundID', 'golferID', 'Name', 'Date', 'courseID', 'Course', 'Tees', 'holesPlayed', 'roundLength', 'Weather', 'tournamentRound', 'Tournament', 'Notes']].iloc[0:1,]
+    
     ## Return statement
-    return strokes
+    return shotLevel, roundLevel
 
 
 def cleaning(strokes):
@@ -36,6 +40,7 @@ def cleaning(strokes):
     strokes['locationLieType'] = ''
     strokes['locationBL'] = 0
     strokes['nextLocationBL'] = 0
+    strokes['changeYardage'] = 0
     strokes['penaltyStrokeValue'] = 0
     strokes['strokesGained'] = 0
     strokes['grossStrokes'] = 0
@@ -49,6 +54,7 @@ def cleaning(strokes):
     strokes['Location'] = strokes['Location'].astype(float)
     strokes['nextLocationBL'] = strokes['nextLocationBL'].astype(float)
     strokes['locationBL'] = strokes['locationBL'].astype(float)
+    strokes['changeYardage'] = strokes['changeYardage'].astype(float)
     strokes['penaltyStrokeValue'] = strokes['penaltyStrokeValue'].astype(int)
     strokes['strokesGained'] = strokes['strokesGained'].astype(float)
     strokes['grossStrokes'] = strokes['grossStrokes'].astype(int)
@@ -330,10 +336,41 @@ def nextLocationBL(strokes, baselines):
                 strokes.at[i, 'nextLocationBL'] = strokes.at[i, 'locationBL']
     
     ## Calling subsequent function
+    strokes = changeYardage(strokes)
+    
+    ## Return statement
+    return strokes
+
+
+def changeYardage(strokes):
+    
+    ## Setting n equal to the number of shots in the Strokes data-frame
+    n = strokes.shape[0]
+    
+    ## Looping through each shot for conditional statements
+    for i in range (0, n):
+        
+        ## Initializing baseline variables
+        Location = strokes.at[i, 'Location']
+        nextLocation = strokes.at[i, 'nextLocation']
+        
+        ## If Location is equal to nextLocation, difference is zero
+        if (Location == nextLocation):
+            strokes.at[i, 'changeYardage'] = 0
+            
+        ## Else, compute the percent difference between yardage values
+        else:
+            strokes.at[i, 'changeYardage'] = (abs(nextLocation - Location) / Location) * 100.0
+            
+    ## Rounding values in changeYardage
+    strokes['changeYardage'] = strokes['changeYardage'].round(1)
+    
+    ## Calling subsequent function
     strokes = strokesGained(strokes)
     
     ## Return statement
     return strokes
+
 
 
 def strokesGained(strokes):
@@ -347,9 +384,16 @@ def strokesGained(strokes):
         ## If recoveryShot is 'Yes', then...
         if (strokes.at[i, 'recoveryShot'] == 'Yes'):
             
-            ## strokesGained of the previous shot is penalized by 0.5
-            strokes.at[i-1, 'strokesGained'] = strokes.at[i-1, 'strokesGained'] - 0.5
-            
+            ## If the percent changeYardage is less than or equal to 15%...
+            if (strokes.at[i, 'changeYardage'] <= 15):
+                
+                ## Then the strokesGained of the previous shot is penalized by one shot
+                strokes.at[i-1, 'strokesGained'] = strokes.at[i-1, 'strokesGained'] - 1
+                
+            ## Else, the strokesGained of the previous shot is penalized by 0.5 shots
+            else:
+                strokes.at[i-1, 'strokesGained'] = strokes.at[i-1, 'strokesGained'] - 0.5
+                
             ## strokesGained of the current shot is not penalized
             strokes.at[i, 'strokesGained'] = 0
         
@@ -358,7 +402,7 @@ def strokesGained(strokes):
             strokes.at[i, 'strokesGained'] = strokes.at[i, 'locationBL'] - strokes.at[i, 'nextLocationBL'] - 1 - strokes.at[i, 'penaltyStrokeValue']
         
     ## Rounding strokesGained values to two decimal places
-    strokes['strokesGained'] = strokes['strokesGained'].round(3)
+    strokes['strokesGained'] = strokes['strokesGained'].round(2)
     
     ## Calling subsequent function
     strokes = traditionals(strokes)
@@ -374,12 +418,12 @@ def traditionals(strokes):
     strokes['grossStrokes'] = 1 + strokes['penaltyStrokeValue']
     
     ## Putts
-    ## When shot category is 'Putt', putts = 1. ELse, 0
+    ## When shot category is 'Putt', putts = 1. Else, 0
     strokes['Putt'] = np.where(strokes['shotCategory'] == 'Putt', 1, 0)
     
     ## Driving Accuracy
-    ## When shot category is 'Tee', and nextLocationLieType is 'Fairway', Fairway = 1. Else, 0
-    strokes['Fairway'] = np.where((strokes['shotCategory'] == 'Tee') & (strokes['nextLocationLieType'] == 'Fairway'), 1, 0)
+    ## When shotCategory is 'Tee', shotNumber is one, and nextLocationLieType is 'Fairway', Fairway = 1
+    strokes['Fairway'] = np.where((strokes['shotNumber'] == 1) & (strokes['shotCategory'] == 'Tee') & (strokes['nextLocationLieType'] == 'Fairway'), 1, 0)
     
     ## Greens-in-Regulation
     ## Setting n equal to the number of shots in the Strokes data-frame
