@@ -76,32 +76,25 @@ def location(strokes):
         ## If the shotNumber is one, then the Location is the holeYardage
         if (strokes.at[i, 'shotNumber'] == 1):
             strokes.at[i, 'Location'] = strokes.at[i, 'holeYardage']
-        
-        ## Else-if the shotNumber is three and previous shot was 'OB', then the Location is the holeYardage
-        elif ((strokes.at[i, 'shotNumber'] == 3) & (strokes.at[i-1, 'penaltyIncurred'] == 'OB')):
-            strokes.at[i, 'Location'] = strokes.at[i, 'holeYardage']
             
-        ## Else-if the shotNumber is five and previous shot was 'OB', then the Location is the holeYardage
-        elif ((strokes.at[i, 'shotNumber'] == 5) & (strokes.at[i-1, 'penaltyIncurred'] == 'OB')):
-            strokes.at[i, 'Location'] = strokes.at[i, 'holeYardage']
+        ## Else-if the previous shot was 'OB', then the Location is the Location of the previous shot
+        elif (strokes.at[i-1, 'penaltyIncurred'] == 'OB'):
+            strokes.at[i, 'Location'] = strokes.at[i-1, 'Location']
     
         ## Else, the Location is the nextLocation of the previous shot
         else:
             strokes.at[i, 'Location'] = strokes.at[i-1, 'nextLocation']
-            
+           
+        
         ## locationLieType ##
         
         ## If the shotNumber is one, then the locationLieType is 'Tee'
         if (strokes.at[i, 'shotNumber'] == 1):
             strokes.at[i, 'locationLieType'] = 'Tee'
             
-        ## Else-if the shotNumber is three and previous shot was 'OB', then the locationLieType is the 'Tee'
-        elif ((strokes.at[i, 'shotNumber'] == 3) & (strokes.at[i-1, 'penaltyIncurred'] == 'OB')):
-            strokes.at[i, 'locationLieType'] = 'Tee'
-            
-        ## Else-if the shotNumber is five and previous shot was 'OB', then the locationLieType is the 'Tee'
-        elif ((strokes.at[i, 'shotNumber'] == 5) & (strokes.at[i-1, 'penaltyIncurred'] == 'OB')):
-            strokes.at[i, 'locationLieType'] = 'Tee'
+        ## Else-if the previous shot was 'OB', then the Location is the Location of the previous shot
+        elif (strokes.at[i-1, 'penaltyIncurred'] == 'OB'):
+            strokes.at[i, 'locationLieType'] = strokes.at[i-1, 'locationLieType']
     
         ## Else, the locationLieType is the nextLocationLieType of the previous shot
         else:
@@ -133,16 +126,16 @@ def shotCategory(strokes):
             else:
                 strokes.at[i, 'shotCategory'] = 'Tee'
                 
-        ## Else-if the shotNumber is three and the previous shot was 'OB', then the shotCategory is 'Tee'
-        elif ((strokes.at[i, 'shotNumber'] == 3) & (strokes.at[i-1, 'penaltyIncurred'] == 'OB')):
-            strokes.at[i, 'shotCategory'] = 'Tee'
+        ## Else-if the previous shot was 'OB', then the shotCategory is the shotCategory of the previous shot
+        elif (strokes.at[i-1, 'penaltyIncurred'] == 'OB'):
+            strokes.at[i, 'shotCategory'] = strokes.at[i-1, 'shotCategory']
     
         ## Else-if the locationLieType is 'Green', then the shot category is 'Putt'
         elif (strokes.at[i, 'locationLieType'] == 'Green'):
             strokes.at[i, 'shotCategory'] = 'Putt'
         
-        ## Else-if Location <= 45, then shot category is 'Around-the-Green'
-        elif (strokes.at[i, 'Location'] <= 45):
+        ## Else-if Location <= 30, then shot category is 'Around-the-Green'
+        elif (strokes.at[i, 'Location'] <= 30):
              strokes.at[i, 'shotCategory'] = 'Around-the-Green'
         
         else:
@@ -167,8 +160,12 @@ def penaltyStrokeValue(strokes):
         if (strokes.at[i, 'penaltyIncurred'] == 'PA'):
             strokes.at[i, 'penaltyStrokeValue'] = 1
         
-        ## Else-if penaltyIncurred is 'OB', then penaltyStrokeValue is 2
+        ## Else-if penaltyIncurred is 'OB', then penaltyStrokeValue is 1
         elif (strokes.at[i, 'penaltyIncurred'] == 'OB'):
+            strokes.at[i, 'penaltyStrokeValue'] = 1
+            
+        ## Else-if penaltyIncurred is 'UN', then penaltyStrokeValue is 1
+        elif (strokes.at[i, 'penaltyIncurred'] == 'UN'):
             strokes.at[i, 'penaltyStrokeValue'] = 1
         
         ## Else, penaltyStrokeValue is 0
@@ -211,7 +208,7 @@ def locationBL(strokes, baselines):
                 
                 ## LocationBL is set to the average number of strokes to hole-out from that yardage
                 strokes.at[i, 'locationBL'] = shotBL.at[yardage-3, 'Tee']
-            
+
             ## If locationLieType is 'Fairway', then
             elif (strokes.at[i, 'locationLieType'] == 'Fairway'):
                 
@@ -330,10 +327,10 @@ def nextLocationBL(strokes, baselines):
                 
             ## If nextLocationLieType is NaN, then nextLocationBL is NaN
             elif (math.isnan(strokes.at[i, 'nextLocationLieType'])):
-                strokes.at[i, 'nextLocationBL'] = math.nan
+                strokes.at[i, 'nextLocationBL'] = strokes.at[i, 'locationBL']
     
     ## Calling subsequent function
-    #strokes = strokesGained(strokes)
+    strokes = strokesGained(strokes)
     
     ## Return statement
     return strokes
@@ -346,9 +343,19 @@ def strokesGained(strokes):
     
     ## Looping through each shot for conditional statements
     for i in range (0, n):
+
+        ## If recoveryShot is 'Yes', then...
+        if (strokes.at[i, 'recoveryShot'] == 'Yes'):
+            
+            ## strokesGained of the previous shot is penalized by 0.5
+            strokes.at[i-1, 'strokesGained'] = strokes.at[i-1, 'strokesGained'] - 0.5
+            
+            ## strokesGained of the current shot is not penalized
+            strokes.at[i, 'strokesGained'] = 0
         
-        ## Strokes Gained = locationBL - nextLocationBL - 1 - penaltyStrokeValue
-        strokes.at[i, 'strokesGained'] = strokes.at[i, 'locationBL'] - strokes.at[i, 'nextLocationBL'] - 1 - strokes.at[i, 'penaltyStrokeValue']
+        ## Else, strokesGained = locationBL - nextLocationBL - 1 - penaltyStrokeValue
+        else:
+            strokes.at[i, 'strokesGained'] = strokes.at[i, 'locationBL'] - strokes.at[i, 'nextLocationBL'] - 1 - strokes.at[i, 'penaltyStrokeValue']
         
     ## Rounding strokesGained values to two decimal places
     strokes['strokesGained'] = strokes['strokesGained'].round(3)
