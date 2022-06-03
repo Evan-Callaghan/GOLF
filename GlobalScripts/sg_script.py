@@ -1,6 +1,6 @@
 ## Strokes Gained Analysis - Evan Callaghan
 
-## Python script file for all code that that creates a final Strokes Gained data set for analysis in Python and Tableau.
+## Python script file for all code that that creates a final Strokes Gained data set for analysis in Python and Tableau. Cleans data, adds variables, and returns two data-frames for analysis.
 
 import pandas as pd
 import numpy as np
