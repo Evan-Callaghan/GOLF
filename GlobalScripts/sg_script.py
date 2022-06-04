@@ -1,6 +1,6 @@
 ## Strokes Gained Analysis - Evan Callaghan
 
-## Python script file for all code that that creates a final Strokes Gained data set for analysis in Python and Tableau. Cleans data, adds variables, and returns two data-frames for analysis.
+## Python script file for all code that that creates a final Strokes Gained data set for analysis in Python and Tableau. Cleans data, adds variables, and returns data-frame for analysis.
 
 import pandas as pd
 import numpy as np
@@ -24,9 +24,11 @@ def initialize(shot, rounds, courses, baselines):
     ## Calling baseline function
     strokes = locationBL(strokes, baselines)
     
-    ## Creating data-frames to be returned
-    shotLevel = strokes[['holeNumber', 'holeYardage', 'shotNumber', 'shotCategory', 'Location', 'locationLieType', 'locationBL', 'nextLocation', 'nextLocationLieType', 'nextLocationBL', 'changeYardage', 'teeShotMiss', 'recoveryShot', 'penaltyIncurred', 'penaltyStrokeValue', 'strokesGained', 'grossStrokes', 'Putt', 'Fairway', 'GIR']]
-    roundLevel = strokes[['roundID', 'golferID', 'Name', 'Date', 'courseID', 'Course', 'Tees', 'holesPlayed', 'roundLength', 'Weather', 'tournamentRound', 'Tournament', 'Notes']].iloc[0:1,]
+    ## Creating shotLevel data-frame to be returned
+    shotLevel = strokes[['roundID', 'holeNumber', 'holePar', 'holeYardage', 'shotNumber', 'shotCategory', 'Location', 'locationLieType', 'locationBL', 'nextLocation', 'nextLocationLieType', 'nextLocationBL', 'changeYardage', 'teeShotMiss', 'recoveryShot', 'penaltyIncurred', 'penaltyStrokeValue', 'strokesGained', 'grossStrokes', 'Putt', 'Fairway', 'GIR']]
+    
+    ## Creating roundLevel data-frame to be returned
+    roundLevel = creatingRoundLevel(shotLevel, rounds)
     
     ## Return statement
     return shotLevel, roundLevel
@@ -61,6 +63,8 @@ def cleaning(strokes):
     strokes['Putt'] = strokes['Putt'].astype(int)
     strokes['Fairway'] = strokes['Fairway'].astype(int)
     strokes['GIR'] = strokes['GIR'].astype(int)
+    
+    strokes['recoveryShot'] = np.where(strokes['recoveryShot'] == 1, 1, 0)
     
     ## Calling subsequent function
     strokes = location(strokes)
@@ -382,7 +386,7 @@ def strokesGained(strokes):
     for i in range (0, n):
 
         ## If recoveryShot is 'Yes', then...
-        if (strokes.at[i, 'recoveryShot'] == 'Yes'):
+        if (strokes.at[i, 'recoveryShot'] == 1):
             
             ## If the percent changeYardage is less than or equal to 15%...
             if (strokes.at[i, 'changeYardage'] <= 15):
@@ -424,6 +428,10 @@ def traditionals(strokes):
     ## Driving Accuracy
     ## When shotCategory is 'Tee', shotNumber is one, and nextLocationLieType is 'Fairway', Fairway = 1
     strokes['Fairway'] = np.where((strokes['shotNumber'] == 1) & (strokes['shotCategory'] == 'Tee') & (strokes['nextLocationLieType'] == 'Fairway'), 1, 0)
+    
+    ## teeShotMiss
+    ## When Fairway is one, teeShotMiss is 'Hit'.
+    strokes['teeShotMiss'] = np.where((strokes['Fairway'] == 1), 'Hit', strokes['teeShotMiss'])
     
     ## Greens-in-Regulation
     ## Setting n equal to the number of shots in the Strokes data-frame
@@ -479,3 +487,63 @@ def traditionals(strokes):
     
     ## Return statement
     return strokes
+
+
+def creatingRoundLevel(shotLevel, rounds):
+    
+    ## Extracting strokesGained by shotCategory for each round
+    shotCategories = pd.DataFrame(shotLevel.groupby(['roundID', 'shotCategory'])['strokesGained'].sum()).reset_index(drop = False)
+    
+    ## Extracting grossStrokes and strokesGained for each round
+    allShots = pd.DataFrame(shotLevel.groupby('roundID')[['grossStrokes', 'strokesGained']].sum()).reset_index(drop = False)
+    
+    ## Extracting course par for each round 
+    par = pd.DataFrame(shotLevel.groupby(['roundID', 'holeNumber'])['holePar'].max()).reset_index(drop = False)
+    
+    ## Defining a list of all rounds in the shotLevel data-frame
+    roundIDs = shotCategories['roundID'].unique()
+    
+    ## Defining an empty data-frame to store results 
+    roundLevel = pd.DataFrame()
+    
+    ## Looping through roundIDs to create final data-frames
+    for roundID in roundIDs:
+        
+        ## Subsetting the round data for the correct roundID
+        round_temp = shotCategories[shotCategories['roundID'] == roundID].drop(columns = ['roundID'])
+        
+        ## Subsetting the shot data for the correct roundID
+        shot_temp = allShots[allShots['roundID'] == roundID].drop(columns = ['roundID'])
+        
+        ## Subsetting the par data for the correct roundID
+        par_temp = par[par['roundID'] == roundID].drop(columns = ['roundID'])
+        
+        ## Summarizing the strokesGained by shotCategory
+        round_temp = pd.DataFrame(round_temp.groupby('shotCategory')['strokesGained'].sum()).T.reset_index(drop = True)
+        
+        ## Adding roundID back into the temp data-frame
+        round_temp['roundID'] = roundID
+        
+        ## Adding grossStrokes back into the temp data-frame
+        round_temp['Score'] = shot_temp.at[0, 'grossStrokes']
+        
+        ## Adding strokesGained back into the temp data-frame
+        round_temp['SG: Total'] = shot_temp.at[0, 'strokesGained']
+        
+        ## Adding course par back into the temp data-frame
+        round_temp['Par'] = par_temp['holePar'].sum()
+        
+        ## Adding score to par into the temp data-frame
+        round_temp['scoreToPar'] = round_temp['Score'] - round_temp['Par']
+        
+        ## Adding results to roundLevel data-frame
+        roundLevel = pd.concat([roundLevel, round_temp], axis = 0).reset_index(drop = True)
+        
+    ## Changing the variable names in roundLevel
+    roundLevel.columns = ['APP', 'ATG', 'PUTT', 'OTT', 'roundID', 'Score', 'SG: Total', 'Par', 'scoreToPar']
+    
+    ## Joining the rounds and roundLevel data-frames to be returned
+    roundLevel = rounds.merge(roundLevel, on = 'roundID', how = 'left')
+    
+    ## Return statement
+    return roundLevel
