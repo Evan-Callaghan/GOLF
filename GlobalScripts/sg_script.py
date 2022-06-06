@@ -459,7 +459,7 @@ def traditionals(strokes):
                 strokes.at[i, 'GIR'] = 1
                 
             ## Else-if shotNumber is two and the nextLocationLieType is 'Hole' or 'Green', then GIR is one
-            elif (strokes.at[i, 'shotNumber'] == 2 and (strokes.at[i, 'nextLocationLieType'] == 'Hole' or strokes.at[i, 'nextLocationLieType'] == 'Green')):
+            elif ((strokes.at[i, 'shotNumber'] == 2) and (strokes.at[i, 'nextLocationLieType'] == 'Hole' or strokes.at[i, 'nextLocationLieType'] == 'Green') and (strokes.at[i-1, 'nextLocationLieType'] != 'Green')):
                 strokes.at[i, 'GIR'] = 1
             
             ## Else, GIR is zero
@@ -474,11 +474,11 @@ def traditionals(strokes):
                 strokes.at[i, 'GIR'] = 1
                 
             ## Else-if shotNumber is two and the nextLocationLieType is 'Hole' or 'Green', then GIR is one
-            elif (strokes.at[i, 'shotNumber'] == 2 and (strokes.at[i, 'nextLocationLieType'] == 'Hole' or strokes.at[i, 'nextLocationLieType'] == 'Green')):
+            elif ((strokes.at[i, 'shotNumber'] == 2) and (strokes.at[i, 'nextLocationLieType'] == 'Hole' or strokes.at[i, 'nextLocationLieType'] == 'Green') and (strokes.at[i-1, 'nextLocationLieType'] != 'Green')):
                 strokes.at[i, 'GIR'] = 1
             
             ## Else-if shotNumber is three and the nextLocationLieType is 'Hole' or 'Green', then GIR is one
-            elif (strokes.at[i, 'shotNumber'] == 3 and (strokes.at[i, 'nextLocationLieType'] == 'Hole' or strokes.at[i, 'nextLocationLieType'] == 'Green')):
+            elif ((strokes.at[i, 'shotNumber'] == 3) and (strokes.at[i, 'nextLocationLieType'] == 'Hole' or strokes.at[i, 'nextLocationLieType'] == 'Green') and (strokes.at[i-1, 'nextLocationLieType'] != 'Green')):
                 strokes.at[i, 'GIR'] = 1
             
             ## Else, GIR is zero
@@ -496,6 +496,9 @@ def creatingRoundLevel(shotLevel, rounds):
     
     ## Extracting grossStrokes and strokesGained for each round
     allShots = pd.DataFrame(shotLevel.groupby('roundID')[['grossStrokes', 'strokesGained']].sum()).reset_index(drop = False)
+    
+    ## Extracting Fairways, GIR, and Putts for each round
+    traditionals = pd.DataFrame(shotLevel.groupby('roundID')[['Fairway', 'GIR', 'Putt']].sum()).reset_index(drop = False)
     
     ## Extracting course par for each round 
     par = pd.DataFrame(shotLevel.groupby(['roundID', 'holeNumber'])['holePar'].max()).reset_index(drop = False)
@@ -515,6 +518,9 @@ def creatingRoundLevel(shotLevel, rounds):
         ## Subsetting the shot data for the correct roundID
         shot_temp = allShots[allShots['roundID'] == roundID].drop(columns = ['roundID'])
         
+        ## Subsetting the traditional stats data for the correct roundID
+        traditionals_temp = traditionals[traditionals['roundID'] == roundID].drop(columns = ['roundID'])
+        
         ## Subsetting the par data for the correct roundID
         par_temp = par[par['roundID'] == roundID].drop(columns = ['roundID'])
         
@@ -530,6 +536,15 @@ def creatingRoundLevel(shotLevel, rounds):
         ## Adding strokesGained back into the temp data-frame
         round_temp['SG: Total'] = shot_temp.at[0, 'strokesGained']
         
+        ## Adding Fairways back into the temp data-frame
+        round_temp['Fairway'] = traditionals_temp.at[0, 'Fairway']
+        
+        ## Adding GIR back into the temp data-frame
+        round_temp['GIR'] = traditionals_temp.at[0, 'GIR']
+        
+        ## Adding Putt back into the temp data-frame
+        round_temp['Putts'] = traditionals_temp.at[0, 'Putt']
+        
         ## Adding course par back into the temp data-frame
         round_temp['Par'] = par_temp['holePar'].sum()
         
@@ -540,7 +555,7 @@ def creatingRoundLevel(shotLevel, rounds):
         roundLevel = pd.concat([roundLevel, round_temp], axis = 0).reset_index(drop = True)
         
     ## Changing the variable names in roundLevel
-    roundLevel.columns = ['APP', 'ATG', 'PUTT', 'OTT', 'roundID', 'Score', 'SG: Total', 'Par', 'scoreToPar']
+    roundLevel.columns = ['APP', 'ATG', 'PUTT', 'OTT', 'roundID', 'Score', 'SG: Total', 'Fairway', 'GIR', 'Putts', 'Par', 'scoreToPar']
     
     ## Joining the rounds and roundLevel data-frames to be returned
     roundLevel = rounds.merge(roundLevel, on = 'roundID', how = 'left')
