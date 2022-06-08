@@ -427,7 +427,7 @@ def traditionals(strokes):
     
     ## Driving Accuracy
     ## When shotCategory is 'Tee', shotNumber is one, and nextLocationLieType is 'Fairway', Fairway = 1
-    strokes['Fairway'] = np.where((strokes['shotNumber'] == 1) & (strokes['shotCategory'] == 'Tee') & (strokes['nextLocationLieType'] == 'Fairway'), 1, 0)
+    strokes['Fairway'] = np.where((strokes['shotNumber'] == 1) & (strokes['shotCategory'] == 'Tee') & ((strokes['nextLocationLieType'] == 'Fairway') | (strokes['nextLocationLieType'] == 'Green') | (strokes['nextLocationLieType'] == 'Hole')), 1, 0)
     
     ## teeShotMiss
     ## When Fairway is one, teeShotMiss is 'Hit'.
