@@ -188,7 +188,7 @@ def penaltyStrokeValue(strokes):
 
 def locationBL(strokes, baselines):
     
-    ## Subsetting the baseline date-frame into 'shotBL' and 'puttBL'
+    ## Subsetting the baseline date-frame into 'shotBL', 'puttBLyds', and 'puttBLft'
     shotBL = baselines[baselines['Type'] == 'Shot'].reset_index(drop = True)
     puttBLyds = baselines[baselines['Type'] == 'Putt (yds)'].reset_index(drop = True)
     puttBLft = baselines[baselines['Type'] == 'Putt (ft)'].reset_index(drop = True)
@@ -274,9 +274,10 @@ def locationBL(strokes, baselines):
 
 def nextLocationBL(strokes, baselines):
     
-    ## Subsetting the baseline date-frame into 'shotBL' and 'puttBL'
+    ## Subsetting the baseline date-frame into 'shotBL', 'puttBLyds', and 'puttBLft'
     shotBL = baselines[baselines['Type'] == 'Shot'].reset_index(drop = True)
-    puttBL = baselines[baselines['Type'] == 'Putt'].reset_index(drop = True)
+    puttBLyds = baselines[baselines['Type'] == 'Putt (yds)'].reset_index(drop = True)
+    puttBLft = baselines[baselines['Type'] == 'Putt (ft)'].reset_index(drop = True)
     
     ## Setting n equal to the number of shots in the Strokes data-frame
     n = strokes.shape[0]
@@ -293,9 +294,18 @@ def nextLocationBL(strokes, baselines):
             
             ## Yardage is equal to nextLocation
             yardage = int(strokes.at[i, 'nextLocation'])
-            
-            ## nextLocationBL is equal to the average number of strokes to hole-out from that yardage
-            strokes.at[i, 'nextLocationBL'] = puttBL.at[yardage-1, 'Green']
+
+            ## If yardage is measured in yards...
+            if (strokes.at[i, 'puttDistance'] == 'Yards'):
+                
+                ## locationBL is equal to the average number of strokes to hole-out from that yardage
+                strokes.at[i, 'nextLocationBL'] = puttBLyds.at[yardage-1, 'Green']
+                
+            ## Else-If yardage is measured in feet...
+            elif (strokes.at[i, 'puttDistance'] == 'Feet'):
+                
+                ## locationBL is equal to the average number of strokes to hole-out from that yardage
+                strokes.at[i, 'nextLocationBL'] = puttBLft.at[yardage-1, 'Green']
         
         ## Else...
         else:
