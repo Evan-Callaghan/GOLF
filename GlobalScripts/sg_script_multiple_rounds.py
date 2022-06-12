@@ -42,13 +42,8 @@ def initialize(shot, rounds, courses, baselines):
         
         ## Concatenating strokes_temp to strokes_final data-frame
         shotLevel = pd.concat([shotLevel, strokes_temp]).reset_index(drop = True)
-        
-#         ## Creating roundLevel data-frame to be returned
-#         rounds_temp = creatingRoundLevel(strokes_temp, rd)
-        
-#         ## Concatenating roundLevel to strokes_final data-frame
-#         roundLevel = pd.concat([roundLevel, rounds_temp]).reset_index(drop = True)
 
+    ## Creating roundLevel data-frame to be returned
     roundLevel = creatingRoundLevel(shotLevel, rounds)
     
     ## Return statement
@@ -597,8 +592,7 @@ def creatingRoundLevel(shotLevel, rounds):
         
     ## Changing the variable names in roundLevel
     roundLevel.columns = ['APP', 'ATG', 'PUTT', 'OTT', 'roundID', 'Score', 'SG: Total', 'Fairway', 'GIR', 'Putts', 'Par', 'scoreToPar']
-    print(type(rounds))
-    print(rounds)
+
     ## Joining the rounds and roundLevel data-frames to be returned
     roundLevel = rounds.merge(roundLevel, on = 'roundID', how = 'left')
     
