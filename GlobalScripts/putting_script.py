@@ -16,14 +16,36 @@ def initialize(putt, rounds, baselines):
     rounds['Putts'] = 0
     rounds['strokesGained'] = 0
     
-    ## Calling puttLevel functions
-    putt = strokes_gained(putt, baselines)
+    ## Defining a unique set of all roundIDs
+    rds = rounds['roundID'].unique()
     
-    ## Calling roundLevel functions
-    rounds = roundLevel(putt, rounds)
+    ## Defining empty data-frames to store results
+    putt_final = pd.DataFrame(columns = putt.columns)
+    rounds_final = pd.DataFrame(columns = rounds.columns)
+    
+    ## Iterating through all rounds
+    for rd in rds:
+        
+        ## Subsetting the data
+        putt_temp = putt[putt['roundID'] == rd].reset_index(drop = True)
+        rounds_temp = rounds[rounds['roundID'] == rd].reset_index(drop = True)
+        
+        ## Calling puttLevel functions
+        putt_temp = strokes_gained(putt_temp, baselines)
+        
+        ## Calling roundLevel functions
+        rounds_temp = roundLevel(putt_temp, rounds_temp)
+        
+        ## Appending putt_temp and rounds_temp data-frames to the final data-frame
+        putt_final = pd.concat([putt_final, putt_temp], axis = 0)
+        rounds_final = pd.concat([rounds_final, rounds_temp], axis = 0)
+        
+    ## Cleaning the final data-frames
+    putt_final = putt_final.reset_index(drop = True)
+    rounds_final = rounds_final.reset_index(drop = True)
     
     ## Return statement
-    return putt, rounds
+    return putt_final, rounds_final
 
 
 def strokes_gained(putt, baselines):
@@ -143,7 +165,7 @@ def resultCoordinates(putt):
 def reorder(putt):
     
     ## Reordering the variables in the data-frame
-    putt = putt[['puttID', 'roundID', 'holeNumber', 'puttNumber', 'puttDistance', 'locationBL', 'breakCategory', 'breakDegree', 'puttResultDistance', 'puttResult', 'nextLocationBL', 'strokesGained', 'x_coord', 'y_coord']]
+    putt = putt[['puttID', 'roundID', 'holeNumber', 'puttNumber', 'puttDistance', 'locationBL', 'breakCategory', 'breakDegree', 'slopeCategory', 'slopeDegree', 'puttResultDistance', 'puttResult', 'nextLocationBL', 'strokesGained', 'x_coord', 'y_coord']]
     
     ## Return statement
     return putt
