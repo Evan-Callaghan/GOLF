@@ -4,19 +4,26 @@ import math
 
 def initialize(putt, rounds, baselines):
     
-    ## Initializing new features 
+    ## Initializing new putt features 
+    putt['puttResultDistance'] = 0
     putt['locationBL'] = 0
     putt['nextLocationBL'] = 0
     putt['strokesGained'] = 0
-    putt['puttResultDistance'] = 0
     putt['x_coord'] = 0
     putt['y_coord'] = 0
     
-    ## Calling subsequent functions
+    ## Initializing new round features
+    rounds['Putts'] = 0
+    rounds['strokesGained'] = 0
+    
+    ## Calling puttLevel functions
     putt = strokes_gained(putt, baselines)
     
+    ## Calling roundLevel functions
+    rounds = roundLevel(putt, rounds)
+    
     ## Return statement
-    return putt
+    return putt, rounds
 
 
 def strokes_gained(putt, baselines):
@@ -67,19 +74,19 @@ def putt_results(putt):
             putt.at[i, 'puttResultDistance'] = putt.at[i+1, 'puttDistance']
             
     ## Calling next function
-    putt = coordinates(putt)
+    putt = resultCoordinates(putt)
     
     ## Return statement      
     return putt
 
 
-def coordinates(putt):
+def resultCoordinates(putt):
     
     ## Defining a coordinate point for each putt result
     for i in range(0, putt.shape[0]):
         
         ## Extracting the putt distance
-        distance = int(putt.at[i, 'puttDistance'])
+        distance = int(putt.at[i, 'puttResultDistance'])
         
         ## Hole
         if (putt.at[i, 'puttResult'] == 'Hole'):
@@ -126,5 +133,29 @@ def coordinates(putt):
             putt.at[i, 'x_coord'] = distance * math.cos(3 * math.pi / 4)
             putt.at[i, 'y_coord'] = distance * math.sin(3 * math.pi / 4)
             
+    ## Calling next function
+    putt = reorder(putt)
+    
     ## Return statement
     return putt
+
+
+def reorder(putt):
+    
+    ## Reordering the variables in the data-frame
+    putt = putt[['puttID', 'roundID', 'holeNumber', 'puttNumber', 'puttDistance', 'locationBL', 'breakCategory', 'breakDegree', 'puttResultDistance', 'puttResult', 'nextLocationBL', 'strokesGained', 'x_coord', 'y_coord']]
+    
+    ## Return statement
+    return putt
+
+
+def roundLevel(putt, rounds):
+    
+    ## Adding the total number of putts
+    rounds['Putts'] = int(putt.groupby('holeNumber')['puttNumber'].max().sum())
+    
+    ## Adding the strokes gained putting for the round
+    rounds['strokesGained'] = round(putt['strokesGained'].sum(), 2)
+    
+    ## Return statement
+    return rounds
